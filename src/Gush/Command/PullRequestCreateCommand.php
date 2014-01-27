@@ -38,7 +38,8 @@ class PullRequestCreateCommand extends BaseCommand implements TableFeature, GitH
         $this
             ->setName('pull-request:create')
             ->setDescription('Launches a pull request')
-            ->addArgument('base_branch', InputArgument::OPTIONAL, 'Name of the base branch to PR to', 'master')
+            ->addOption('base', 'b', InputOption::VALUE_REQUIRED, 'Base Branch', 'master')
+            ->addOption('head', 'h', InputOption::VALUE_REQUIRED, 'Head Branch')
             ->setHelp(
                 <<<EOF
 The <info>%command.name%</info> command gives a pat on the back to a PR's author with a random template:
@@ -54,135 +55,54 @@ EOF
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $tableString = $this->getGithubTableString($input, $output);
-
-        /** @var DialogHelper $dialog */
-        $dialog = $this->getHelper('dialog');
-        $validator = function ($answer) {
-            $answer = trim($answer);
-            if (empty($answer)) {
-                throw new \RunTimeException('You need to provide a non empty title');
-            }
-
-            return $answer;
-        };
-        $title = $dialog->askAndValidate(
-            $output,
-            'PR Title:',
-            $validator,
-            false,
-            null,
-            null
-        );
-        $prNumber = $this->postPullRequest($input, $output, $title, $tableString);
-        $output->writeln($prNumber['html_url']);
-
-        return self::COMMAND_SUCCESS;
-    }
-
-    private function getGithubTableString(InputInterface $input, OutputInterface $output)
-    {
-        /** @var DialogHelper $dialog */
-        $dialog = $this->getHelper('dialog');
-
-        /** @var \Gush\Model\Question[] $questions */
-        if (false === strpos($this->getHelper('git')->getRepoName(), 'docs')) {
-            $questionary = new SymfonyQuestionary();
-        } else {
-            $questionary = new SymfonyDocumentationQuestionary();
-        }
-
-        $answers = [];
-        /** @var Question $question */
-        foreach ($questionary->getQuestions() as $question) {
-            $statement = $question->getStatement() . ' ';
-            if ($question->getDefault()) {
-                $statement .= '[' . $question->getDefault() . '] ';
-            }
-
-            // @todo change this when on 2.5 to the new Question model
-            $answers[] = [
-                $question->getStatement(),
-                $dialog->askAndValidate(
-                    $output,
-                    $statement,
-                    $question->getValidator(),
-                    $question->getAttempt(),
-                    $question->getDefault(),
-                    $question->getAutocomplete()
-                )
-            ];
-        }
-
-        $table = $this->getMarkdownTableHelper($questionary);
-        $table->addRows($answers);
-
-        $tableOutput = new BufferedOutput();
-        $input->setOption('table-layout', 'github');
-        $table->render($tableOutput);
-
-        return $tableOutput->fetch();
-    }
-
-    private function getMarkdownTableHelper(Questionary $questionary)
-    {
-        $table = $this->getHelper('table');
-
-        // adds headers from questionary
-        $table->addRow($questionary->getHeaders());
-        // adds rows --- | --- | ...
-        $table->addRow(array_fill(0, count($questionary->getHeaders()), '---'));
-
-        return $table;
-    }
-
-    private function postPullRequest(
-        InputInterface $input,
-        OutputInterface $output,
-        $title,
-        $description
-    ) {
         $org = $input->getOption('org');
         $repo = $input->getOption('repo');
 
-        $baseBranch = $input->getArgument('base_branch');
+        $base = $input->getOption('base');
+        $head = $input->getOption('head');
+
+        if (null === $head) {
+            $head = $this->getHelper('git')->getBranchName();
+        }
 
         $github = $this->getParameter('github');
         $username = $github['username'];
-        $branchName = $this->getHelper('git')->getBranchName();
 
-        $commands = [
-            [
-                'line' => sprintf('git remote add %s git@github.com:%s/%s.git', $username, $username, $repo),
-                'allow_failures' => true
-            ],
-            [
-                'line' => 'git remote update',
-                'allow_failures' => false
-            ],
-            [
-                'line' => sprintf('git push -u %s %s', $username, $branchName),
-                'allow_failures' => false
-            ]
-        ];
+        if (!$title = $input->getOption('title')) {
+            $title = $this->askQuestion('Title');
+        }
 
-        $this->getHelper('process')->runCommands($commands);
+        // to be replaced with something like
+        //
+        // $this->getHelper('template')->get($input->getOption('template') ?: 'symfony');
+        //
+        $template = new SymfonyTemplate;
 
-        $client = $this->getGithubClient();
-        $pullRequest = $client
+        foreach ($template->getRequirements() as $key => $requirement) {
+            $v = $input->getOption($key);
+            if (!$v) {
+                list($question, $default) = $requirement;
+                $v = $this->askQuestion($question, $default);
+            }
+
+            $params[$key] = $v;
+        }
+
+        $body = $template->render($params);
+
+        $pullRequest = $this->getGithubClient()
             ->api('pull_request')
-            ->create(
-                $org,
-                $repo,
-                [
-                    'base'  => $org.':'.$baseBranch,
-                    'head'  => $username.':'.$branchName,
+            ->create($org, $repo, [
+                    'base'  => $org . ':' . $base,
+                    'head'  => $username . ':' . $head,
                     'title' => $title,
                     'body'  => $description,
                 ]
             )
         ;
 
-        return $pullRequest;
+        $output->writeln($pullRequest['html_url']);
+
+        return self::COMMAND_SUCCESS;
     }
 }
