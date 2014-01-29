@@ -8,16 +8,25 @@ use Gush\Template\TemplateInterface;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Helper\DialogHelper;
+use Symfony\Component\Console\Input\InputAwareInterface;
+use Gush\Template\PullRequest\DefaultTemplate;
 
-class TemplateHelper extends Helper
+class TemplateHelper extends Helper implements InputAwareInterface
 {
     protected $templates;
     protected $dialog;
+    protected $input;
 
     public function __construct(DialogHelper $dialog)
     {
         $this->registerTemplate(new SymfonyTemplate());
+        $this->registerTemplate(new DefaultTemplate());
         $this->dialog = $dialog;
+    }
+
+    public function setInput(InputInterface $input)
+    {
+        $this->input = $input;
     }
 
     public function registerTemplate(TemplateInterface $template)
@@ -42,16 +51,16 @@ class TemplateHelper extends Helper
         return $this->templates[$key];
     }
 
-    public function parameterize(InputInterface $input, OutputInterface $output, TemplateInterface $template)
+    public function parameterize(OutputInterface $output, TemplateInterface $template)
     {
         $params = array();
         foreach ($template->getRequirements() as $key => $requirement) {
-            if (!$input->hasOption($key) || !$input->getOption($key)) {
+            if (!$this->input->hasOption($key) || !$this->input->getOption($key)) {
                 list($prompt, $default) = $requirement;
                 $prompt  = $default ? $prompt . ' (' . $default . ')' : $prompt;
                 $v = $this->dialog->ask($output, $prompt . ' ', $default);
             } else {
-                $v = $input->getOption($key);
+                $v = $this->input->getOption($key);
             }
 
             $params[$key] = $v;

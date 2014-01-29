@@ -26,6 +26,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\Yaml\Yaml;
+use Gush\Subscriber\TemplateSubscriber;
 
 class Application extends BaseApplication
 {
@@ -60,6 +61,7 @@ class Application extends BaseApplication
         // add our subscribers to the event dispatcher
         $this->dispatcher->addSubscriber(new TableSubscriber());
         $this->dispatcher->addSubscriber(new GitHubSubscriber($helperSet->get('git')));
+        $this->dispatcher->addSubscriber(new TemplateSubscriber());
 
         // share our dispatcher with the parent class
         $this->setDispatcher($this->dispatcher);

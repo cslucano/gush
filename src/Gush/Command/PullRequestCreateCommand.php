@@ -24,13 +24,15 @@ use Gush\Feature\GitHubFeature;
 use Gush\Feature\TableFeature;
 use Symfony\Component\Console\Input\InputOption;
 use Gush\Template\PullRequest\SymfonyTemplate;
+use Gush\Feature\TemplateFeature;
 
 /**
  * Launches a pull request
  *
  * @author Luis Cordova <cordoval@gmail.com>
+ * @author Daniel Leech <daniel@dantleech.com>
  */
-class PullRequestCreateCommand extends BaseCommand implements TableFeature, GitHubFeature
+class PullRequestCreateCommand extends BaseCommand implements GitHubFeature, TemplateFeature
 {
     /**
      * {@inheritdoc}
@@ -40,10 +42,9 @@ class PullRequestCreateCommand extends BaseCommand implements TableFeature, GitH
         $this
             ->setName('pull-request:create')
             ->setDescription('Launches a pull request')
-            ->addOption('base', null, InputOption::VALUE_REQUIRED, 'Base Branch', 'master')
-            ->addOption('head', null, InputOption::VALUE_REQUIRED, 'Head Branch')
+            ->addOption('base', null, InputOption::VALUE_REQUIRED, 'Base Branch - remote branch name', 'master')
+            ->addOption('head', null, InputOption::VALUE_REQUIRED, 'Head Branch - your branch name (defaults to current)')
             ->addOption('title', null, InputOption::VALUE_REQUIRED, 'PR Title')
-            ->addOption('description', null, InputOption::VALUE_REQUIRED, 'PR Description')
             ->setHelp(
                 <<<EOF
 The <info>%command.name%</info> command gives a pat on the back to a PR's author with a random template:
@@ -65,6 +66,8 @@ EOF
         $base = $input->getOption('base');
         $head = $input->getOption('head');
 
+        $template = $input->getOption('template');
+
         if (null === $head) {
             $head = $this->getHelper('git')->getBranchName();
         }
@@ -72,12 +75,16 @@ EOF
         $github = $this->getParameter('github');
         $username = $github['username'];
 
-        if (!$title = $input->hasOption('title')) {
-            $title = $this->askQuestion('Title');
+        if (!$title = $input->getOption('title')) {
+            $title = $this->getHelper('dialog')->ask($output, 'Title: ');
         }
 
-        $template = $this->getHelper('template')->getTemplate('pull-request', 'symfony');
-        $this->getHelper('template')->parameterize($input, $output, $template);
+        if (!$template) {
+            $template = 'default';
+        }
+
+        $template = $this->getHelper('template')->getTemplate('pull-request', $template);
+        $this->getHelper('template')->parameterize($output, $template);
         $body = $template->render();
 
         $pullRequest = $this->getGithubClient()

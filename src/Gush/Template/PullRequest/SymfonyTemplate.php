@@ -4,27 +4,9 @@ namespace Gush\Template\PullRequest;
 
 use Gush\Helper\TableHelper;
 use Symfony\Component\Console\Output\BufferedOutput;
-use Gush\Template\TemplateInterface;
 
-class SymfonyTemplate implements TemplateInterface
+class SymfonyTemplate extends AbstractTemplate
 {
-    protected $parameters = null;
-
-    public function bind($parameters)
-    {
-        $this->parameters = $parameters;
-
-        $requirements = $this->getRequirements();
-
-        foreach ($requirements as $key => $rData) {
-            list($label, $default) = $rData;
-
-            if (!isset($this->parameters[$key])) {
-                $this->parameters[$key] = $default;
-            }
-        }
-    }
-    
     public function render()
     {
         if (null === $this->parameters) {
@@ -60,15 +42,15 @@ class SymfonyTemplate implements TemplateInterface
     public function getRequirements()
     {
         return array(
-            'bug_fix' => array('Bug Fix?', 'n'),
-            'new_feature' => array('New Feature?', 'n'),
-            'bc_breaks' => array('BC Breaks?', 'n'),
-            'deprecations' => array('Deprecations', 'n'),
-            'tests_pass' => array('Tests Pass?', 'n'),
-            'fixed_tickets' => array('Fixed Tickets', ''),
-            'license' => array('License', 'MIT'),
-            'doc_pr' => array('Doc PR', ''),
-            'description' => array('Description', ''),
+            'bug_fix' => array('Bug Fix?:', 'n'),
+            'new_feature' => array('New Feature? :', 'n'),
+            'bc_breaks' => array('BC Breaks?:', 'n'),
+            'deprecations' => array('Deprecations:', 'n'),
+            'tests_pass' => array('Tests Pass?:', 'n'),
+            'fixed_tickets' => array('Fixed Tickets:', ''),
+            'license' => array('License:', 'MIT'),
+            'doc_pr' => array('Doc PR:', ''),
+            'description' => array('Description:', ''),
         );
     }
 
