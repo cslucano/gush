@@ -4,31 +4,54 @@ namespace Gush\Template\PullRequest;
 
 use Gush\Helper\TableHelper;
 use Symfony\Component\Console\Output\BufferedOutput;
+use Gush\Template\TemplateInterface;
 
 class SymfonyTemplate implements TemplateInterface
 {
-    public function render($params)
+    protected $parameters = null;
+
+    public function bind($parameters)
     {
+        $this->parameters = $parameters;
+
+        $requirements = $this->getRequirements();
+
+        foreach ($requirements as $key => $rData) {
+            list($label, $default) = $rData;
+
+            if (!isset($this->parameters[$key])) {
+                $this->parameters[$key] = $default;
+            }
+        }
+    }
+    
+    public function render()
+    {
+        if (null === $this->parameters) {
+            throw new \RuntimeException('Template has not been bound');
+        }
+
         $output = new BufferedOutput();
         $table = new TableHelper();
         $table->setHeaders(array('Q', 'A'));
         $table->setLayout(TableHelper::LAYOUT_GITHUB);
 
-        $description = $params['description'];
-        unset($params['description']);
+        $description = $this->parameters['description'];
+        unset($this->parameters['description']);
+        $requirements = $this->getRequirements();
 
-        foreach ($params as $key => $value) {
-            $table->addRow($key, $value);
+        foreach ($this->parameters as $key => $value) {
+            $label = $requirements[$key][0];
+            $table->addRow([$label, $value]);
         }
 
-        $tableHelper->render($output);
+        $table->render($output);
 
         $out = array();
         $out[] = $output->fetch();
-        $out[] = '';
-        $out[] = $params['description'];
+        $out[] = $description;
 
-        return implode('\n', $out);
+        return implode("\n", $out);
     }
 
     /**
@@ -51,7 +74,7 @@ class SymfonyTemplate implements TemplateInterface
 
     public function getName()
     {
-        return 'symfony';
+        return 'pull-request/symfony';
     }
 }
 

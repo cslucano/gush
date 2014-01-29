@@ -22,6 +22,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Gush\Feature\GitHubFeature;
 use Gush\Feature\TableFeature;
+use Symfony\Component\Console\Input\InputOption;
 
 /**
  * Launches a pull request
@@ -77,17 +78,8 @@ EOF
         // $this->getHelper('template')->get($input->getOption('template') ?: 'symfony');
         //
         $template = new SymfonyTemplate;
-
-        foreach ($template->getRequirements() as $key => $requirement) {
-            $v = $input->getOption($key);
-            if (!$v) {
-                list($question, $default) = $requirement;
-                $v = $this->askQuestion($question, $default);
-            }
-
-            $params[$key] = $v;
-        }
-
+        $this->getHelper('template')->getTemplate($template);
+        $this->getHelper('template')->parameterize($output, $input, $template);
         $body = $template->render($params);
 
         $pullRequest = $this->getGithubClient()

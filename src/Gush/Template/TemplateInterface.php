@@ -7,7 +7,9 @@ interface TemplateInterface
     /**
      * Render the template using the given parameters
      */
-    public function render($params);
+    public function render();
+
+    public function bind($params);
 
     /**
      * Return all the variables required by the template
