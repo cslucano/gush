@@ -23,6 +23,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Gush\Feature\GitHubFeature;
 use Gush\Feature\TableFeature;
 use Symfony\Component\Console\Input\InputOption;
+use Gush\Template\PullRequest\SymfonyTemplate;
 
 /**
  * Launches a pull request
@@ -39,8 +40,10 @@ class PullRequestCreateCommand extends BaseCommand implements TableFeature, GitH
         $this
             ->setName('pull-request:create')
             ->setDescription('Launches a pull request')
-            ->addOption('base', 'b', InputOption::VALUE_REQUIRED, 'Base Branch', 'master')
-            ->addOption('head', 'h', InputOption::VALUE_REQUIRED, 'Head Branch')
+            ->addOption('base', null, InputOption::VALUE_REQUIRED, 'Base Branch', 'master')
+            ->addOption('head', null, InputOption::VALUE_REQUIRED, 'Head Branch')
+            ->addOption('title', null, InputOption::VALUE_REQUIRED, 'PR Title')
+            ->addOption('description', null, InputOption::VALUE_REQUIRED, 'PR Description')
             ->setHelp(
                 <<<EOF
 The <info>%command.name%</info> command gives a pat on the back to a PR's author with a random template:
@@ -69,18 +72,13 @@ EOF
         $github = $this->getParameter('github');
         $username = $github['username'];
 
-        if (!$title = $input->getOption('title')) {
+        if (!$title = $input->hasOption('title')) {
             $title = $this->askQuestion('Title');
         }
 
-        // to be replaced with something like
-        //
-        // $this->getHelper('template')->get($input->getOption('template') ?: 'symfony');
-        //
-        $template = new SymfonyTemplate;
-        $this->getHelper('template')->getTemplate($template);
-        $this->getHelper('template')->parameterize($output, $input, $template);
-        $body = $template->render($params);
+        $template = $this->getHelper('template')->getTemplate('pull-request', 'symfony');
+        $this->getHelper('template')->parameterize($input, $output, $template);
+        $body = $template->render();
 
         $pullRequest = $this->getGithubClient()
             ->api('pull_request')
@@ -88,7 +86,7 @@ EOF
                     'base'  => $org . ':' . $base,
                     'head'  => $username . ':' . $head,
                     'title' => $title,
-                    'body'  => $description,
+                    'body'  => $body,
                 ]
             )
         ;

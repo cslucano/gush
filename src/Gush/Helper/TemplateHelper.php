@@ -46,10 +46,17 @@ class TemplateHelper extends Helper
     {
         $params = array();
         foreach ($template->getRequirements() as $key => $requirement) {
-            if (!$input->hasOption($key)) {
+            if (!$input->hasOption($key) || !$input->getOption($key)) {
                 list($prompt, $default) = $requirement;
-                $this->dialog->ask($output, $prompt, $default);
+                $prompt  = $default ? $prompt . ' (' . $default . ')' : $prompt;
+                $v = $this->dialog->ask($output, $prompt . ' ', $default);
+            } else {
+                $v = $input->getOption($key);
             }
+
+            $params[$key] = $v;
         }
+
+        $template->bind($params);
     }
 }
