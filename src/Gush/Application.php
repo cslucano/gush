@@ -48,10 +48,10 @@ class Application extends BaseApplication
     public function __construct()
     {
         $helperSet = $this->getDefaultHelperSet();
-        $helperSet->set(new Helpers\GitHelper());
         $helperSet->set(new Helpers\TextHelper());
         $helperSet->set(new Helpers\TableHelper());
         $helperSet->set(new Helpers\ProcessHelper());
+        $helperSet->set(new Helpers\GitHelper($helperset->get('process')));
         $helperSet->set(new Helpers\TemplateHelper($helperSet->get('dialog')));
 
         // the parent dispatcher is private and has
@@ -76,6 +76,7 @@ class Application extends BaseApplication
         $this->add(new Cmd\PullRequestSquashCommand());
         $this->add(new Cmd\PullRequestSemVerCommand());
         $this->add(new Cmd\FabbotIoCommand());
+        $this->add(new Cmd\MetaHeaderCommand());
         $this->add(new Cmd\PullRequestFixerCommand());
         $this->add(new Cmd\ReleaseCreateCommand());
         $this->add(new Cmd\ReleaseListCommand());
