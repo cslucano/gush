@@ -51,7 +51,7 @@ class Application extends BaseApplication
         $helperSet->set(new Helpers\TextHelper());
         $helperSet->set(new Helpers\TableHelper());
         $helperSet->set(new Helpers\ProcessHelper());
-        $helperSet->set(new Helpers\GitHelper($helperset->get('process')));
+        $helperSet->set(new Helpers\GitHelper($helperSet->get('process')));
         $helperSet->set(new Helpers\TemplateHelper($helperSet->get('dialog')));
 
         // the parent dispatcher is private and has
