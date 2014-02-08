@@ -216,4 +216,40 @@ class Application extends BaseApplication
     {
         return $this->dispatcher;
     }
+
+    public function getHelp()
+    {
+        $elephant = $this->getElephantAscii();
+        $defaultHelp = parent::getHelp();
+
+        return $elephant."\n".$defaultHelp."\n";
+    }
+
+    protected function getElephantAscii()
+    {
+        // source: http://www.geocities.com/spunk1111/zoo.htm#smelephant
+        return <<<EOT
+<comment>
+                  ___.-~"~-._   __....__
+                .'    `    \ ~"~        ``-.
+               /` _      )  `\              `\
+              /`  a)    /     |               `\
+             :`        /      | SONNY           \
+        <`-._|`  .-.  (      /   .            `;\\
+         `-. `--'_.'-.;\___/'   .      .       | \\
+      _     /:--`     |        /     /        .'  \\
+     ("\   /`/        |       '     '         /    :`;
+     `\'\_/`/         .\     /`~`=-.:        /     ``
+       `._.'          /`\    |      `\      /(
+                     /  /\   |        `Y   /  \
+               jgs  J  /  Y  |         |  /`\  \
+                   /  |   |  |         |  |  |  |
+                  "---"  /___|        /___|  /__|
+                         '"""         '"""  '"""
+
+                         SUNSHINEPHP 2014
+</comment>
+EOT;
+
+    }
 }
