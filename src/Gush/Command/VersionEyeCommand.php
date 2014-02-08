@@ -11,6 +11,7 @@
 
 namespace Gush\Command;
 
+use Guzzle\Http\Client;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Gush\Feature\GitHubFeature;
@@ -42,13 +43,33 @@ EOF
     {
         $org = $input->getOption('org');
         $repo = $input->getOption('repo');
-        // $projectId = '52f57f71ec1375fd0b0000b6'; --> gush
-        $projectId = '52f580fbec137591740000a8'; // this is gush-sandbox
+        $projectName = $org.'/'.$repo;
 
-        $versionEyeClient = new \Guzzle\Http\Client();
+        $versionEyeToken = '6d18dc4533885a6fadd0';
+        $versionEyeClient = new Client();
         $versionEyeClient->setBaseUrl('https://www.versioneye.com');
+
         $results = $versionEyeClient->get(
-            sprintf('/api/v2/projects/%s?api_key=6d18dc4533885a6fadd0', $projectId)
+            sprintf('/api/v2/projects?api_key=%s', $versionEyeToken)
+        )->send();
+
+        $projectId = '';
+        $projectCollection = json_decode($results->getBody());
+        foreach ($projectCollection as $project) {
+            if ($project->name == $projectName) {
+                $projectId = $project->id;
+                break;
+            }
+        }
+
+        if ('' == $projectId) {
+            $output->writeln("Couldn't resolve the id of the project from the list from version eye.\n");
+
+            return self::COMMAND_FAILURE;
+        }
+
+        $results = $versionEyeClient->get(
+            sprintf('/api/v2/projects/%s?api_key=%s', $projectId, $versionEyeToken)
         )->send();
 
         $response = json_decode($results->getBody());
@@ -56,8 +77,10 @@ EOF
             if ($dependency->outdated) {
                 $this->getHelper('process')->runCommands(
                     [
-                        'line' => sprintf('composer require %s %s --no-update', $dependency->name, $dependency->version_current),
-                        'allow_failure' => true,
+                        [
+                            'line' => sprintf('composer require %s %s --no-update', $dependency->name, $dependency->version_current),
+                            'allow_failures' => true,
+                        ]
                     ]
                 );
             }
