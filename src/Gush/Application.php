@@ -102,6 +102,7 @@ class Application extends BaseApplication
         $this->add(new Cmd\LabelIssuesCommand());
         $this->add(new Cmd\ConfigureCommand());
         $this->add(new Cmd\VersionEyeCommand());
+        $this->add(new Cmd\PullRequestImageGeneratorCommand());
     }
 
     /**
